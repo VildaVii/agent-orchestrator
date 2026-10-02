@@ -124,6 +124,7 @@ import { OrchestratorIcon } from "./icons";
 import { Badge } from "./ui/badge";
 import aoLogo from "../../../assets/ao-logo.svg";
 import { cn } from "../lib/utils";
+import { recordManualWorkerOpen } from "../lib/session-management-telemetry";
 import { useUiStore } from "../stores/ui-store";
 import { useKeybindingsStore } from "../stores/keybindings-store";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -999,9 +1000,11 @@ export function Sidebar({
 										hostLabel={session.hostId ? remoteHosts.find((host) => host.hostId === session.hostId)?.label ?? session.hostId : undefined}
 										layoutSettled={layoutSettled}
 										onKilled={handlePinnedSessionKilled}
-										onOpenSession={(target) => target.hostId
-											? void remoteNavigate(sessionNavigateTarget(target.workspaceId, target.id, target.hostId))
-											: selection.goSession(target.workspaceId, target.id)}
+										onOpenSession={(target) => {
+											if (session.kind === "worker") recordManualWorkerOpen(target.id);
+											if (target.hostId) void remoteNavigate(sessionNavigateTarget(target.workspaceId, target.id, target.hostId));
+											else selection.goSession(target.workspaceId, target.id);
+										}}
 									/>
 								))}
 							</SidebarMenuSub>
@@ -1382,6 +1385,7 @@ const ProjectItem = memo(function ProjectItem({
 		[sessions],
 	);
 	const openSession = useCallback((sessionId: string) => {
+		recordManualWorkerOpen(sessionId);
 		selection.goSession(workspace.id, sessionId);
 	}, [selection, workspace.id]);
 	const handleSessionKilled = useCallback(
@@ -1916,7 +1920,10 @@ function ScratchpadSection({
 		[sessions],
 	);
 	const openSession = useCallback(
-		(sessionId: string) => selection.goSession(STANDALONE_WORKSPACE_ID, sessionId),
+		(sessionId: string) => {
+			recordManualWorkerOpen(sessionId);
+			selection.goSession(STANDALONE_WORKSPACE_ID, sessionId);
+		},
 		[selection],
 	);
 	const handleSessionKilled = useCallback(

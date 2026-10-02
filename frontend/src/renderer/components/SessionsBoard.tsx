@@ -48,6 +48,7 @@ import { LOCAL_HOST, refKey } from "../lib/hosts";
 import { useShellMaybe } from "../lib/shell-context";
 import { sessionNavigateTarget } from "../lib/navigate-to-session";
 import { ProjectBoardActions } from "./ProjectBoardActions";
+import { recordManualWorkerOpen } from "../lib/session-management-telemetry";
 import {
 	ArchivedSessionCardAdapter,
 	BoardSessionCardAdapter,
@@ -163,6 +164,7 @@ export function SessionsBoard({ projectId, hostId }: SessionsBoardProps) {
 	activeScopeRef.current = scopeKey;
 
 	const openSession = useCallback((session: WorkspaceSession) => {
+		if (session.kind === "worker") recordManualWorkerOpen(session.id);
 		void navigate(sessionNavigateTarget(session.workspaceId, session.id, hostId));
 	}, [navigate, hostId]);
 
