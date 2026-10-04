@@ -110,6 +110,9 @@ func (p *Plugin) PromptReadinessHints(ctx context.Context, _ ports.LaunchConfig)
 		Patterns: []string{
 			"Type a message",
 			"What can I help",
+			// Cline 3.0.x empty-composer text on a fresh session / on resume.
+			"What can I do for you",
+			"Ask anything",
 			">",
 		},
 		PollInterval: 200 * time.Millisecond,

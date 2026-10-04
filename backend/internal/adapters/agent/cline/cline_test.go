@@ -139,6 +139,12 @@ func TestPromptReadinessHints(t *testing.T) {
 	if hints.Timeout <= 0 || len(hints.Patterns) == 0 {
 		t.Fatalf("hints = %#v, want bounded readiness patterns", hints)
 	}
+	// Texts Cline 3.0.x renders in an empty composer (fresh session / resume).
+	for _, want := range []string{"What can I do for you", "Ask anything"} {
+		if !contains(hints.Patterns, want) {
+			t.Fatalf("hints.Patterns = %#v, missing %q", hints.Patterns, want)
+		}
+	}
 }
 
 func TestGetConfigSpecReportsModelField(t *testing.T) {
