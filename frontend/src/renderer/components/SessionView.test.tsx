@@ -4437,7 +4437,7 @@ describe("SessionView", () => {
 		expect(screen.queryByRole("button", { name: "files center" })).not.toBeInTheDocument();
 	});
 
-	it("consumes an initial Command-K file request through the existing Files reveal flow", async () => {
+	it("opens an initial Command-K file request in the center workspace", async () => {
 		reviewGetMock.mockImplementation(async (path: string) => {
 			if (path === "/api/v1/sessions/{sessionId}/workspace/files") {
 				return {
@@ -4458,10 +4458,10 @@ describe("SessionView", () => {
 
 		render(<SessionView sessionId="sess-1" />);
 
-		await waitFor(() => expect(screen.getByText("selected src/from-command.ts")).toBeInTheDocument());
+		expect(await screen.findByTestId("session-file-workspace")).toHaveTextContent("src/from-command.ts");
 		expect(screen.getByRole("tab", { name: "from-command.ts" })).toHaveAttribute("aria-selected", "true");
 		expect(useUiStore.getState().workspaceFileOpenRequest).toBeNull();
-		expect(useUiStore.getState().inspectorSessions["sess-1"]?.view).toBe("files");
+		expect(useUiStore.getState().inspectorSessions["sess-1"]?.view).toBe("summary");
 	});
 
 	it("resolves a basename against workspace files before opening on a cold cache", async () => {
