@@ -2271,6 +2271,17 @@ export function createBrowserViewHost(options: BrowserViewHostOptions): BrowserV
 			findNext: input.newSession,
 			matchCase: false,
 		});
+		if (input.newSession && input.query.length < 4) {
+			// Chromium delays new find sessions shorter than four characters by
+			// 400 ms. A follow-up request for the same query flushes that pending
+			// search immediately without advancing the match. Keep tracking the
+			// initial request id because that is the request Chromium emits.
+			entry.view.webContents.findInPage(input.query, {
+				forward: input.forward,
+				findNext: false,
+				matchCase: false,
+			});
+		}
 		entry.findState = {
 			viewId: session.viewId,
 			tabId: entry.tabId,
