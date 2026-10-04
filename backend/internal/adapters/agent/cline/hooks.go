@@ -84,6 +84,10 @@ func (p *Plugin) GetAgentHooks(ctx context.Context, cfg ports.WorkspaceHookConfi
 		return errors.New("cline.GetAgentHooks: WorkspacePath is required")
 	}
 
+	if err := checkRulesDirUsable(cfg.WorkspacePath); err != nil {
+		return fmt.Errorf("cline.GetAgentHooks: %w", err)
+	}
+
 	hooksDir := clineHooksDir(cfg.WorkspacePath)
 	if err := os.MkdirAll(hooksDir, 0o750); err != nil {
 		return fmt.Errorf("cline.GetAgentHooks: create hook dir: %w", err)
@@ -126,6 +130,11 @@ func (p *Plugin) GetAgentHooks(ctx context.Context, cfg ports.WorkspaceHookConfi
 	if err := hookutil.EnsureWorkspaceGitignore(hooksDir, written...); err != nil {
 		return fmt.Errorf("cline.GetAgentHooks: gitignore: %w", err)
 	}
+	// Deliver AO's system prompt as a workspace rule file instead of `-s` so the
+	// launch command line stays short (see systemprompt.go).
+	if err := installSystemPromptRule(cfg.WorkspacePath, cfg.SystemPrompt, cfg.SystemPromptFile); err != nil {
+		return fmt.Errorf("cline.GetAgentHooks: system prompt: %w", err)
+	}
 	return nil
 }
 
@@ -138,6 +147,10 @@ func (p *Plugin) UninstallHooks(ctx context.Context, workspacePath string) error
 	}
 	if strings.TrimSpace(workspacePath) == "" {
 		return errors.New("cline.UninstallHooks: workspacePath is required")
+	}
+
+	if err := removeSystemPromptRule(workspacePath); err != nil {
+		return fmt.Errorf("cline.UninstallHooks: %w", err)
 	}
 
 	hooksDir := clineHooksDir(workspacePath)

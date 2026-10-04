@@ -29,7 +29,6 @@ func TestGetLaunchCommandBuildsCrossPlatformArgv(t *testing.T) {
 	want := []string{
 		"cline",
 		"--yolo",
-		"-s", "be careful",
 	}
 	if !reflect.DeepEqual(cmd, want) {
 		t.Fatalf("unexpected command\nwant: %#v\n got: %#v", want, cmd)
@@ -56,7 +55,6 @@ func TestGetLaunchCommandOmitsJSONForPromptlessInteractiveLaunch(t *testing.T) {
 	want := []string{
 		"cline",
 		"--yolo",
-		"-s", "coordinate the project",
 	}
 	if !reflect.DeepEqual(cmd, want) {
 		t.Fatalf("unexpected command\nwant: %#v\n got: %#v", want, cmd)
@@ -383,7 +381,6 @@ func TestGetRestoreCommandReadsAgentSessionID(t *testing.T) {
 	want := []string{
 		"cline",
 		"--auto-approve", "true",
-		"-s", "restore instructions",
 		"--id", "session-123",
 	}
 	if !reflect.DeepEqual(cmd, want) {

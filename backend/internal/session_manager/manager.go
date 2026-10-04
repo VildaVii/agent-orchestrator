@@ -5481,6 +5481,7 @@ func (m *Manager) prepareWorkspace(ctx context.Context, agent ports.Agent, id do
 		m.cleanupPreparedAgentWorkspace(ctx, agent, id, workspacePath, env)
 		return fmt.Errorf("install hooks: %w", err)
 	}
+	m.excludeAgentWorkspaceFiles(ctx, agent, id, workspacePath)
 	if pl, ok := agent.(preLauncher); ok {
 		if err := pl.PreLaunch(ctx, ports.LaunchConfig{DataDir: m.dataDir, SessionID: string(id), WorkspacePath: workspacePath}); err != nil {
 			m.cleanupPreparedAgentWorkspace(ctx, agent, id, workspacePath, env)
@@ -5488,6 +5489,37 @@ func (m *Manager) prepareWorkspace(ctx context.Context, agent ports.Agent, id do
 		}
 	}
 	return nil
+}
+
+// workspaceExcluder is an optional Agent capability: workspace files the adapter
+// writes (rule files, prompts) that must not surface in git status or get
+// committed. AO applies them through the workspace port's AddExclude.
+type workspaceExcluder interface {
+	WorkspaceExcludePatterns() []string
+}
+
+// excludeAgentWorkspaceFiles applies an adapter's workspaceExcluder patterns.
+// Best effort: adapters also keep their files out of git with a sentinel
+// .gitignore, so a failure here is logged instead of failing the launch.
+func (m *Manager) excludeAgentWorkspaceFiles(ctx context.Context, agent ports.Agent, id domain.SessionID, workspacePath string) {
+	excluder, ok := agent.(workspaceExcluder)
+	if !ok {
+		return
+	}
+	patterns := excluder.WorkspaceExcludePatterns()
+	if len(patterns) == 0 {
+		return
+	}
+	rec, err := m.getRecord(ctx, id)
+	if err != nil {
+		m.logger.Warn("agent workspace exclude skipped: session record unavailable", "session", id, "error", err)
+		return
+	}
+	info := workspaceInfo(rec)
+	info.Path = workspacePath
+	if err := m.workspace.AddExclude(ctx, info, patterns...); err != nil {
+		m.logger.Warn("agent workspace exclude failed", "session", id, "workspacePath", workspacePath, "error", err)
+	}
 }
 
 func (m *Manager) cleanupPreparedAgentWorkspace(ctx context.Context, agent ports.Agent, id domain.SessionID, workspacePath string, env map[string]string) {

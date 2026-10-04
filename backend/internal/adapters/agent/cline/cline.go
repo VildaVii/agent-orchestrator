@@ -73,6 +73,9 @@ func (p *Plugin) GetConfigSpec(ctx context.Context) (ports.ConfigSpec, error) {
 // GetLaunchCommand builds the argv to start a new interactive Cline session.
 // Prompted worker tasks are injected after startup; passing them in argv makes
 // Cline's startup parser reject short prompts such as "hi" as unknown commands.
+// The AO system prompt is not part of argv: GetAgentHooks writes it to the
+// workspace `.clinerules/zz-ao-managed-system-prompt.md` rule file (see systemprompt.go),
+// keeping the command line well under cmd.exe's 8191-character limit.
 func (p *Plugin) GetLaunchCommand(ctx context.Context, cfg ports.LaunchConfig) (cmd []string, err error) {
 	binary, err := p.clineBinary(ctx)
 	if err != nil {
@@ -82,10 +85,6 @@ func (p *Plugin) GetLaunchCommand(ctx context.Context, cfg ports.LaunchConfig) (
 	cmd = []string{binary}
 	appendApprovalFlags(&cmd, cfg.Permissions)
 	appendModelFlag(&cmd, cfg.Config)
-
-	if cfg.SystemPrompt != "" {
-		cmd = append(cmd, "-s", cfg.SystemPrompt)
-	}
 
 	return cmd, nil
 }
@@ -120,9 +119,11 @@ func (p *Plugin) PromptReadinessHints(ctx context.Context, _ ports.LaunchConfig)
 
 // GetRestoreCommand rebuilds the argv that continues an existing Cline session:
 // `cline [approval flags] --id <agentSessionId>`. Resumes are interactive
-// because no prompt is supplied here. ok is false when the hook-derived native
-// session id has not landed yet, so callers can fall back to fresh launch
-// behavior.
+// because no prompt is supplied here, and the system prompt comes from the
+// workspace rule file rewritten by GetAgentHooks (session_manager.prepareWorkspace
+// runs before restoreArgv on every restore, so the file is refreshed first).
+// ok is false when the hook-derived native session id has not landed yet, so
+// callers can fall back to fresh launch behavior.
 func (p *Plugin) GetRestoreCommand(ctx context.Context, cfg ports.RestoreConfig) (cmd []string, ok bool, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
@@ -141,9 +142,6 @@ func (p *Plugin) GetRestoreCommand(ctx context.Context, cfg ports.RestoreConfig)
 	cmd = append(cmd, binary)
 	appendApprovalFlags(&cmd, cfg.Permissions)
 	appendModelFlag(&cmd, cfg.Config)
-	if cfg.SystemPrompt != "" {
-		cmd = append(cmd, "-s", cfg.SystemPrompt)
-	}
 	cmd = append(cmd, "--id", agentSessionID)
 	return cmd, true, nil
 }
