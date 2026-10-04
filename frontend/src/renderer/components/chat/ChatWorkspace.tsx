@@ -1168,9 +1168,13 @@ function ChatWorkspaceContent({
 					onChangeConfigOption={newWorkDisabled ? undefined : onChooseConfigOption}
 					configPending={configOptionPending}
 					error={configOptionError}
+					// Turn settings require a live controller even while messages can queue.
 					disabled={
-						snapshot.controller.state === "stopped" || controllerTransitioning || configOptionPending || newWorkDisabled
-					}
+							snapshot.controller.state === "connecting" ||
+							snapshot.controller.state === "stopped" ||
+							session?.provisionState === "provisioning" ||
+							controllerTransitioning || configOptionPending || newWorkDisabled
+						}
 				/>
 			) : null,
 		[
@@ -1180,6 +1184,7 @@ function ChatWorkspaceContent({
 			controllerTransitioning,
 			models,
 			newWorkDisabled,
+			session?.provisionState,
 			onChooseConfigOption,
 			onChooseSettings,
 			onRememberPermissions,
